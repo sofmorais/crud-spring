@@ -1,7 +1,6 @@
 package com.crud.model;
 
 import com.crud.model.enums.VoteType;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,16 +16,13 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "vote")
-public class Vote implements Serializable {
+public class VoteHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @JsonProperty("_id")
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "course_id")
+    @JoinColumn(name = "course_id", referencedColumnName = "id")
     private Course course;
 
     @Column(name = "host")
@@ -34,13 +30,8 @@ public class Vote implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
-    private VoteType type;
-
-    @Column(name = "insert_date")
-    private Date insertDate;
+    private VoteType voteType;
 
     @Column(name = "update_date")
     private Date updateDate;
-
 }
-

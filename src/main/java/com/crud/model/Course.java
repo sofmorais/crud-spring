@@ -1,58 +1,41 @@
 package com.crud.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Table;
+import lombok.*;
 import jakarta.validation.constraints.Pattern;
-import lombok.Data;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
-import org.hibernate.validator.constraints.Length;
+import jakarta.persistence.Id;
 
-import java.util.HashSet;
-import java.util.Set;
 
-@Data
+import java.io.Serializable;
+import java.util.UUID;
+
 @Entity
-@SQLDelete(sql = "UPDATE Course SET status = 'Inactive' WHERE id = ?")
-//@Where(clause = "status <> 'DELETED'")
-@Where(clause = "status <> 'Inactive'")
-public class Course {
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "course")
+public class Course implements  Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @JsonProperty("_id")
-    private Long id;
+    private UUID id;
 
-    @NotBlank
-    @NotNull
-    @Length(min = 5, max = 100)
-    @Column(length = 100, nullable = false)
+    @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    @NotNull
-    @Length(max = 10)
+    @Column(name = "category", nullable = false)
     @Pattern(regexp = "Back-end|Front-end")
-    @Column(length = 10, nullable = false)
     private String category;
 
-    @NotNull
-    @Length(max = 10)
+    @Builder.Default
+    @Column(name = "status", nullable = false)
     @Pattern(regexp = "Active|Inactive")
-    @Column(length = 10, nullable = false)
     private String status = "Active";
 
-    @Column(length = 300)
+    @Column(name = "description", nullable = false)
     private String description;
-
-    @Column(nullable = false)
-    private int likes = 0;
-
-    @Column(nullable = false)
-    private int dislikes = 0;
-
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
-    private Set<Vote> votes = new HashSet<>();
 
 }

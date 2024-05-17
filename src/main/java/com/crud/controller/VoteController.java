@@ -1,71 +1,66 @@
 package com.crud.controller;
 
-import com.crud.model.Course;
 import com.crud.model.Vote;
-import com.crud.model.VoteType;
+import com.crud.model.dto.CreateVotacaoRequest;
+import com.crud.model.enums.VoteType;
 import com.crud.repository.VoteRepository;
 import com.crud.service.CourseService;
 import com.crud.service.VoteService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
+@RestController
 @RequestMapping("api/votes")
 public class VoteController {
 
     private final VoteService voteService;
-    private final VoteRepository voteRepository
 
-/*    @Autowired
-    private VoteService voteService;*/
-
+    @Autowired
     public VoteController(VoteService voteService) {
         this.voteService = voteService;
     }
 
-    @GetMapping
-    public @ResponseBody List<Vote> list() {
-        return voteService.listVotes();
+    @PostMapping
+    public ResponseEntity<Vote> create(@Validated @RequestBody CreateVotacaoRequest request, @RequestHeader("X-Forwarded-For") String host) {
+        this.voteService.create(request, host);
+        return ResponseEntity.noContent().build();
     }
 
-    public List<Vote> getVotesForCourse(Long courseId) {
-        return voteRepository.findByCourseId(courseId);
+    @PutMapping("/{id}")
+    public ResponseEntity<Vote> update(@Validated @RequestBody CreateVotacaoRequest request, HttpServletRequest host) {
+        this.voteService.update(request, host);
+        return ResponseEntity.noContent().build();
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String remoteAddr = "";
-
-        if (request != null) {
-            remoteAddr = request.getHeader("X-FORWARDED-FOR");
-            if (remoteAddr == null || "".equals(remoteAddr)) {
-                remoteAddr = request.getRemoteAddr();
-            }
-        }
-
-        return remoteAddr;
-    }
-
-
-    @PostMapping("/votes/like/{courseId}")
-    public ResponseEntity<Vote> createVoteLike(@RequestParam @PathVariable Long courseId, @RequestHeader("X-Forwarded-For") String ipAddress) {
-        voteService.createVote(courseId, VoteType.LIKE, ipAddress);
+    @GetMapping("/findByType/{type}")
+    public ResponseEntity<Vote> findByType(@PathVariable VoteType type) {
+        this.voteService.findByType(type);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/votes/dislike/{courseId}")
-    public ResponseEntity<Vote> createVoteDislike(@RequestParam @PathVariable Long courseId, @RequestHeader("X-Forwarded-For") String ipAddress) {
-        voteService.createVote(courseId, VoteType.DISLIKE, ipAddress);
+    @GetMapping("/{idCourse}/{host}")
+    public ResponseEntity<Vote> findByCourseAndHostId(@PathVariable UUID idCourse, @PathVariable String host) {
+        this.voteService.findByIdCourseAndHost(idCourse, host);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping
-    public ResponseEntity<List<Vote>> getVotesForCourse(@PathVariable Long courseId) {
-        List<Vote> votes = voteService.getVotesForCourse(courseId);
-        return ResponseEntity.ok().body(votes);
+    @GetMapping("/findAllVotes")
+    public ResponseEntity<List<Vote>> findAll() {
+        this.voteService.findAll();
+        return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id){
+        this.voteService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 
 }

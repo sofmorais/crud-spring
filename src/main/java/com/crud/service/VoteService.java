@@ -2,93 +2,85 @@ package com.crud.service;
 
 import com.crud.model.Course;
 import com.crud.model.Vote;
-import com.crud.model.VoteType;
-import com.crud.repository.CourseRepository;
+import com.crud.model.dto.CreateVotacaoRequest;
+import com.crud.model.enums.VoteType;
 import com.crud.repository.VoteRepository;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
-import org.checkerframework.checker.index.qual.Positive;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Optional;
 import java.util.List;
+import java.util.UUID;
 
-
+@Service
+@RequiredArgsConstructor
 public class VoteService {
+
     private final VoteRepository voteRepository;
-    private final CourseRepository courseRepository;
-    private final HttpServletRequest request;
+    private final VoteHistoryService historyService;
 
-    @Autowired
-    public VoteService(VoteRepository voteRepository, CourseRepository courseRepository, HttpServletRequest request) {
-        this.voteRepository = voteRepository;
-        this.courseRepository = courseRepository;
-        this.request = request;
-    }
+    public void create(CreateVotacaoRequest request, String host) {
 
-    public List<Vote> listVotes() {
-        return voteRepository.findAll();
-    }
+        Vote vote = this.voteRepository.findByCourse_IdAndHost(request.getId(), request.getHost());
+        String ipAddress = getClientIp(host);
 
-    public Optional<Vote> findVoteById(Long id) {
-        return voteRepository.findById(id);
-    }
+        if(vote == null) {
+            this.voteRepository.save(Vote.builder()
+                .id(request.getId())
+                .course(Course.builder().id(request.getIdCourse()).build())
+                .host(ipAddress)
+                .type(request.getType())
+                .updateDate(new Date())
+                .insertDate(new Date())
+                .build());
 
-    public Optional<Vote> updateVote(Long id, @Valid Vote vote) {
-        return voteRepository.findById(id)
-                .map(existingVote -> {
-                    existingVote.setType(vote.getType());
-                    existingVote.setCreationDate(LocalDateTime.now());
-                    return voteRepository.save(existingVote);
-                });
-    }
-
-    public boolean deleteVote(Long id) {
-        return voteRepository.findById(id)
-                .map(existingVote -> {
-                    voteRepository.deleteById(id);
-                    return true;
-                })
-                .orElse(false);
-    }
-
-    public void createVote(@NotNull Long courseId, VoteType voteType,  String ipAddress) {
-        Course curso = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Curso não encontrado"));
-
-        if (curso.getVotes().stream().anyMatch(vote -> vote.getMachine().equals(ipAddress))) {
-            throw new RuntimeException("Este IP já votou neste curso");
+        this.historyService.create(request);
         }
 
-        if (voteType == VoteType.LIKE) {
-            curso.setLikes(curso.getLikes() + 1);
-        } else {
-            curso.setDislikes(curso.getDislikes() + 1);
-        }
-
-        Vote vote = new Vote();
-        vote.setCourse(curso);
-        vote.setType(voteType);
-        vote.setCreationDate(LocalDateTime.now());
-        vote.setMachine(ipAddress);
-
-        curso.getVotes().add(vote);
-
-        voteRepository.save(vote);
     }
 
-    private String getClientIp(HttpServletRequest request) {
+    public void update(final CreateVotacaoRequest request, HttpServletRequest host) {
+        Vote vote = this.findByIdCourseAndHost(request.getIdCourse(), request.getHost());
+
+        if (vote != null) {
+            vote.setType(request.getType());
+            vote.setUpdateDate(new Date());
+
+            this.voteRepository.save(vote);
+            this.historyService.create(request);
+        }
+    }
+
+    public void delete(UUID id) {
+        this.voteRepository.deleteById(id);
+    }
+
+    public Optional<Vote> findById(UUID id) {
+        return this.voteRepository.findById(id);
+    }
+
+    public Vote findByIdCourseAndHost(UUID courseId, String host) {
+        return this.voteRepository.findByCourse_IdAndHost(courseId, host);
+    }
+
+    public List<Vote> findAll() {
+        return this.voteRepository.findAll();
+    }
+
+    public Vote findByType(VoteType type){
+        return this.voteRepository.findByType(type);
+    }
+
+    private String getClientIp(String host) {
         String remoteAddr = "";
 
-        if (request != null) {
-            remoteAddr = request.getHeader("X-FORWARDED-FOR");
-            if (remoteAddr == null || "".equals(remoteAddr)) {
-                remoteAddr = request.getRemoteAddr();
-            }
+        if (host != null && !host.isEmpty()) {
+            remoteAddr = host;
         }
-
         return remoteAddr;
     }
+
 }
